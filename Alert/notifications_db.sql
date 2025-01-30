@@ -1,6 +1,6 @@
 -- Notifications and Alerts Service
-CREATE database notifications;
-USE notifications;
+CREATE database notifications_db;
+USE notifications_db;
 
 CREATE TABLE Notifications (
     NotificationID INT AUTO_INCREMENT PRIMARY KEY,

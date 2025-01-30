@@ -1,6 +1,6 @@
 #Create new database for user
-CREATE database users;
-USE users;
+CREATE database user_db;
+USE user_db;
 
 CREATE TABLE Users (
     UserID INT AUTO_INCREMENT PRIMARY KEY,

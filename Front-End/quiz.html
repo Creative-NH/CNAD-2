@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fall Risk Questionnaire</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Fall Risk Questionnaire</h1>
+        <div class="question" id="question"></div>
+        <div class="options" id="options"></div>
+        <div class="progress" id="progress"></div>
+        <div class="nav-buttons">
+            <button class="prev" onclick="prevQuestion()" disabled>Previous</button>
+            <button class="next" onclick="nextQuestion()">Next</button>
+        </div>
+        <div class="results-container" id="results-container">
+            <h2>Assessment Completed!</h2>
+            <p>Click Submit to send your responses.</p>
+            <button class="submit-button" onclick="submitResults()">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        let questions = [];
+        let currentIndex = 0;
+        let userResponses = {};
+
+        async function fetchQuestions() {
+            const language = localStorage.getItem("selectedLanguage") || "English";
+            const response = await fetch(`http://localhost/api/self_assessment/questionnaire?language=${language}`);
+            questions = await response.json();
+            currentIndex = 0;
+            userResponses = {}; 
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            if (currentIndex >= questions.length) {
+                showSubmitButton();
+                return;
+            }
+
+            const questionData = questions[currentIndex];
+            document.getElementById("question").textContent = questionData.question_content;
+            
+            const optionsDiv = document.getElementById("options");
+            optionsDiv.innerHTML = "";
+            
+            questionData.question_options.forEach((option, index) => {
+                const button = document.createElement("button");
+                button.textContent = option;
+                button.onclick = () => {
+                    userResponses[questionData.question_id] = index + 1;
+                    nextQuestion();
+                };
+                optionsDiv.appendChild(button);
+            });
+
+            document.getElementById("progress").textContent = `Question ${currentIndex + 1} of ${questions.length}`;
+            document.querySelector(".prev").disabled = (currentIndex === 0);
+            document.querySelector(".next").disabled = (currentIndex === questions.length);
+        }
+
+        function prevQuestion() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                displayQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentIndex < questions.length - 1) {
+                currentIndex++;
+                displayQuestion();
+            } else {
+                showSubmitButton();
+            }
+        }
+
+        function showSubmitButton() {
+            document.getElementById("question").style.display = "none";
+            document.getElementById("options").style.display = "none";
+            document.getElementById("progress").style.display = "none";
+            document.querySelector(".nav-buttons").style.display = "none";
+
+            document.getElementById("results-container").style.display = "block";
+        }
+
+        async function submitResults() {
+            try {
+                const response = await fetch("http://localhost/api/self_assessment/submit", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(userResponses)
+                });
+
+                if (response.ok) {
+                    alert("Responses submitted successfully!");
+                    window.location.href = "index.html"; // Redirect to homepage
+                } else {
+                    alert("Failed to submit responses. Please try again.");
+                }
+            } catch (error) {
+                alert("Error submitting responses: " + error.message);
+            }
+        }
+
+        fetchQuestions();
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 -- Reporting Service
-CREATE database reporting;
-USE reporting;
+CREATE database report_db;
+USE report_db;
 
 CREATE TABLE Reports (
     ReportID INT AUTO_INCREMENT PRIMARY KEY,

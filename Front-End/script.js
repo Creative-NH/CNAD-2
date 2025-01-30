@@ -1,3 +1,4 @@
+/*
 document.getElementById('assessmentForm').addEventListener('submit', function (event) {
     event.preventDefault(); // Prevent the form from reloading the page
 
@@ -19,3 +20,4 @@ document.getElementById('assessmentForm').addEventListener('submit', function (e
     document.getElementById('result').style.display = 'block';
     document.getElementById('riskLevel').textContent = riskLevel;
 });
+*/

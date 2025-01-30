@@ -1,6 +1,6 @@
 -- recommendations Service
-CREATE database recommendations;
-USE recommendations;
+CREATE database risk_assessment_db;
+USE risk_assessment_db;
 
 CREATE TABLE Recommendations (
     RecommendationID INT AUTO_INCREMENT PRIMARY KEY,
