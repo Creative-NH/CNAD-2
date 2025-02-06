@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -14,18 +15,9 @@ type Question struct {
 	QuestionOptions []string `json:"question_options"`
 }
 
-var questions = []Question{
-	{
-		QuestionID:      "1",
-		QuestionContent: "How often do you feel dizzy?",
-		QuestionOptions: []string{"Never", "Rarely", "Sometimes", "Often"},
-	},
-	{
-		QuestionID:      "2",
-		QuestionContent: "Do you have any mobility issues?",
-		QuestionOptions: []string{"No", "Minor", "Moderate", "Severe"},
-	},
-	// Add more questions as needed
+type UserResponse struct {
+	QuestionID string `json:"question_id"`
+	Response   int    `json:"response"`
 }
 
 func main() {
@@ -65,8 +57,23 @@ func handleQuestionnaire(w http.ResponseWriter, r *http.Request) {
 		language = "English"
 	}
 
+	// Fetch questions from the external API
+	apiURL := fmt.Sprintf("http://localhost/api/frontend/questionnaire?language=%s", language)
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		http.Error(w, "Failed to fetch questions from the API", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "Failed to read API response", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(questions)
+	w.Write(body)
 }
 
 func handleSubmit(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +89,35 @@ func handleSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("User Responses:", responses)
+	// Convert responses to the format expected by the external API
+	var userResponses []UserResponse
+	for qID, resp := range responses {
+		userResponses = append(userResponses, UserResponse{
+			QuestionID: qID,
+			Response:   resp,
+		})
+	}
+
+	// Submit responses to the external API
+	apiURL := "http://localhost/api/frontend/submit"
+	jsonData, err := json.Marshal(userResponses)
+	if err != nil {
+		http.Error(w, "Error encoding JSON", http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := http.Post(apiURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		http.Error(w, "Failed to submit responses to the API", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, "API returned an error", resp.StatusCode)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Responses submitted successfully!"))
 }
