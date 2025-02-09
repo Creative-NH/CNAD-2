@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructions</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .instruction-container {
+            text-align: center;
+            max-width: 400px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .instruction-section {
+            display: none; /* Hide all sections by default */
+        }
+
+        .instruction-section.active {
+            display: block; /* Show the active section */
+        }
+
+        .instruction-section h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .instruction-section p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .dot-pagination {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background-color: #ccc;
+            border-radius: 50%;
+            margin: 0 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .dot.active {
+            background-color: #333; /* Highlight the active dot */
+        }
+
+        .next-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .next-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="instruction-container">
+        <!-- Section 1 -->
+        <div class="instruction-section active">
+            <h2>Step 1</h2>
+            <p>Cover your eyes.</p>
+        </div>
+
+        <!-- Section 2 -->
+        <div class="instruction-section">
+            <h2>Step 2</h2>
+            <p>Keep your device at arm's length away from the screen.</p>
+        </div>
+
+        <!-- Section 3 -->
+        <div class="instruction-section">
+            <h2>Step 3</h2>
+            <p>Mark the corresponding arrow direction on the pie ring.</p>
+        </div>
+
+        <!-- Dot Pagination -->
+        <div class="dot-pagination">
+            <div class="dot active" data-index="0"></div>
+            <div class="dot" data-index="1"></div>
+            <div class="dot" data-index="2"></div>
+        </div>
+
+        <!-- Next Step Button -->
+        <button class="next-button">Next Step</button>
+    </div>
+
+    <script>
+        const sections = document.querySelectorAll('.instruction-section');
+        const dots = document.querySelectorAll('.dot');
+        const nextButton = document.querySelector('.next-button');
+        let currentSection = 0;
+
+        // Function to update the active section and dots
+        function updateSection(index) {
+            // Hide all sections
+            sections.forEach(section => section.classList.remove('active'));
+            // Show the current section
+            sections[index].classList.add('active');
+
+            // Update dot pagination
+            dots.forEach(dot => dot.classList.remove('active'));
+            dots[index].classList.add('active');
+
+            // Update the button text for the final section
+            if (index === sections.length - 1) {
+                nextButton.textContent = "I'm Ready";
+            } else {
+                nextButton.textContent = "Next Step";
+            }
+        }
+
+        // Next button click event
+        nextButton.addEventListener('click', () => {
+            if (currentSection < sections.length - 1) {
+                currentSection++;
+                updateSection(currentSection);
+            } else {
+                // Redirect to the test page when "I'm Ready" is clicked
+                window.location.href = "contrastVisionTest.html";
+            }
+        });
+
+        // Dot pagination click event
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                currentSection = index;
+                updateSection(currentSection);
+            });
+        });
+
+        // Initialize the first section
+        updateSection(currentSection);
+    </script>
+
+</body>
+</html>
