@@ -1,4 +1,4 @@
-FROM golang:1.20 AS builder
+FROM golang:1.23.4-bullseye AS builder
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -16,7 +16,7 @@ COPY . .
 RUN go build -o doctor_service
 
 # Expose the application port
-EXPOSE 8083
+EXPOSE 8081
 
 # Start the service
 CMD ["./doctor_service"]
