@@ -1,7 +1,8 @@
 -- Self-Assessment Service
-DROP database IF EXISTS self_assessment_db;
-CREATE database self_assessment_db;
+DROP DATABASE IF EXISTS self_assessment_db;
+CREATE DATABASE self_assessment_db;
 USE self_assessment_db;
+
 CREATE TABLE Assessments (
     AssessmentID INT AUTO_INCREMENT PRIMARY KEY,
     UserID INT NOT NULL,
@@ -10,34 +11,40 @@ CREATE TABLE Assessments (
     PhysicalTestResults TEXT,
     RiskLevel ENUM('low', 'moderate', 'high') DEFAULT 'low'
 );
+
 -- English Questions
 CREATE TABLE QuestionsEn (
     QuestionID INT AUTO_INCREMENT PRIMARY KEY,
     QuestionContent VARCHAR(500) NOT NULL, 
     QuestionOptions VARCHAR(500) NOT NULL 
 );
+
 -- Chinese (Simplified) Questions
 CREATE TABLE QuestionsCn (
     QuestionID INT AUTO_INCREMENT PRIMARY KEY,
     QuestionContent VARCHAR(500) NOT NULL, 
     QuestionOptions VARCHAR(500) NOT NULL 
 );
+
 -- Malay Questions
 CREATE TABLE QuestionsMy (
     QuestionID INT AUTO_INCREMENT PRIMARY KEY,
     QuestionContent VARCHAR(500) NOT NULL, 
     QuestionOptions VARCHAR(500) NOT NULL 
 );
+
 -- Tamil Questions
 CREATE TABLE QuestionsTa (
     QuestionID INT AUTO_INCREMENT PRIMARY KEY,
     QuestionContent VARCHAR(500) NOT NULL, 
     QuestionOptions VARCHAR(500) NOT NULL 
 );
+
 INSERT INTO Assessments (UserID, HealthQuestions, PhysicalTestResults) VALUES
 (1, '{"dizziness": "no", "balance": "good", "falls": 0}', '{"reaction_time": 0.8, "balance_score": 85}'),
 (1, '{"dizziness": "yes", "balance": "poor", "falls": 2}', '{"reaction_time": 1.5, "balance_score": 60}'),
 (2, '{"dizziness": "yes", "balance": "poor", "falls": 5}', '{"reaction_time": 2.0, "balance_score": 40}');
+
 INSERT INTO QuestionsEn (QuestionContent, QuestionOptions) 
 VALUES 
 ("Do you experience dizziness?", '["Yes", "No"]'),
@@ -50,6 +57,7 @@ VALUES
 ("Do you take medications that cause dizziness?", '["Yes", "No", "Not sure"]'),
 ("Do you exercise regularly?", '["Yes", "No"]'),
 ("Do you experience numbness in your feet?", '["Yes", "No", "Sometimes"]');
+
 INSERT INTO QuestionsCn (QuestionContent, QuestionOptions) 
 VALUES 
 ("你是否感到头晕？", '["是", "否"]'),
@@ -62,6 +70,7 @@ VALUES
 ("你是否服用会导致头晕的药物？", '["是", "否", "不确定"]'),
 ("你是否定期运动？", '["是", "否"]'),
 ("你的脚是否会感到麻木？", '["是", "否", "有时"]');
+
 INSERT INTO QuestionsMy (QuestionContent, QuestionOptions) 
 VALUES 
 ("Adakah anda mengalami pening?", '["Ya", "Tidak"]'),
@@ -74,6 +83,7 @@ VALUES
 ("Adakah anda mengambil ubat yang menyebabkan pening?", '["Ya", "Tidak", "Tidak pasti"]'),
 ("Adakah anda bersenam secara berkala?", '["Ya", "Tidak"]'),
 ("Adakah anda mengalami kebas di kaki anda?", '["Ya", "Tidak", "Kadang-kadang"]');
+
 INSERT INTO QuestionsTa (QuestionContent, QuestionOptions) 
 VALUES 
 ("நீங்கள் மயக்கம் உணர்கிறீர்களா?", '["ஆம்", "இல்லை"]'),
