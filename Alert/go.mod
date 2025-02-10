@@ -1,4 +1,4 @@
-module github.com/yourusername/yourprojectname
+module github.com/yourusername/alert
 
 go 1.23.4
 

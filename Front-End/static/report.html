@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Report</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .report-container {
+            max-width: 800px;
+            background: #ffffff;
+            margin: auto;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border: 2px solid #007bff;
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+        }
+
+        h2 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+            color: #0056b3;
+        }
+
+        p {
+            font-size: 16px;
+            margin: 8px 0;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f9f9f9;
+            border-left: 5px solid #007bff;
+        }
+
+        .section strong {
+            display: inline-block;
+            width: 180px;
+            color: #333;
+        }
+
+        .risk-level {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        .low-risk {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .medium-risk {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .high-risk {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+            }
+            .report-container {
+                border: none;
+                box-shadow: none;
+            }
+            .footer {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="report-container">
+        <h1>Health Report</h1>
+
+        <div class="section">
+            <h2>User Information</h2>
+            <p><strong>Name:</strong> {{.User.Name}}</p>
+            <p><strong>Email:</strong> {{.User.Email}}</p>
+            <p><strong>Date of Birth:</strong> {{.User.DateOfBirth}}</p>
+            <p><strong>Phone Number:</strong> {{.User.PhoneNumber}}</p>
+            <p><strong>Address:</strong> {{.User.Address}}</p>
+        </div>
+
+        <div class="section">
+            <h2>Assessment Information</h2>
+            <p><strong>Physical Test Results:</strong> {{.Assessment.PhysicalTestResults}}</p>
+        </div>
+
+        <div class="section">
+            <h2>Risk Assessment</h2>
+            <p class="risk-level {{.RiskAssessment.RiskLevel}}">
+                <strong>Risk Level:</strong> {{.RiskAssessment.RiskLevel}}
+            </p>
+            <p><strong>Recommendation:</strong> {{.RiskAssessment.Recommendation}}</p>
+        </div>
+
+        <div class="footer">
+            <p>Generated on {{.ReportDate}}</p>
+        </div>
+    </div>
+
+</body>
+</html>
