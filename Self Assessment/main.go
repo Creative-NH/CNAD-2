@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -32,7 +32,8 @@ func main() {
 	}
 
 	// Get local port from environment variables
-	localPort := os.Getenv("LOCAL_PORT")
+	//localPort := os.Getenv("LOCAL_PORT")
+	localPort := "5000"
 	if localPort == "" {
 		log.Fatal("LOCAL_PORT environment variable is not set")
 	}
@@ -51,14 +52,14 @@ func main() {
 	router.HandleFunc("/api/questionnaire", func(w http.ResponseWriter, r *http.Request) {
 		questionnaireHandler(w, r, db)
 	}).Methods("GET")
-	router.HandleFunc("/api/results", func(w http.ResponseWriter, r *http.Request) {
-		latestResultsHandler(w, r, db)
+	router.HandleFunc("/api/addAssessmentResults", func(w http.ResponseWriter, r *http.Request) {
+		addAssessmentHandler(w, r, db)
+	}).Methods("POST")
+	router.HandleFunc("/api/getLastAssessment", func(w http.ResponseWriter, r *http.Request) {
+		getLastAssessmentHandler(w, r, db)
 	}).Methods("POST")
 	router.HandleFunc("/api/assessmentHistory", func(w http.ResponseWriter, r *http.Request) {
 		assessmentHistoryHandler(w, r, db)
-	}).Methods("{POST}")
-	router.HandleFunc("/api/getResults", func(w http.ResponseWriter, r *http.Request) {
-		getResultsHandler(w, r, db)
 	}).Methods("POST")
 
 	// CORS Configuration
@@ -77,10 +78,13 @@ func main() {
 }
 
 // Structure to handle assessment submissions
-type AssessmentRequest struct {
-	UserID              int    `json:"user_id"`
-	HealthQuestions     string `json:"health_questions"`
-	PhysicalTestResults string `json:"physical_test_results"`
+
+type Assessment struct {
+	AssessmentID   int    `json:"id"`
+	TotalScore     int    `json:"totalScore"`
+	RiskLevel      string `json:"riskLevel"`
+	Recommendation string `json:"recommendation"`
+	DateCreated    int    `json:"dateCreated"`
 }
 
 // Handler to retrieve questionnaire questions based on language (GET request with query string)
@@ -141,117 +145,195 @@ func questionnaireHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	json.NewEncoder(w).Encode(questions)
 }
 
-// Handler to retrieve the latest assessment results for a user
-func latestResultsHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	userID := r.URL.Query().Get("user_id")
-	if userID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	type Request struct {
+		UserID  int         `json:"user_id"`
+		Answers map[int]int `json:"answers"`
+	}
+
+	var req Request
+
+	// Decode JSON request
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Println("❌ Error decoding JSON request:", err)
+		http.Error(w, "Invalid JSON request", http.StatusBadRequest)
 		return
 	}
 
-	query := "SELECT AssessmentID, Date, HealthQuestions, PhysicalTestResults, RiskLevel FROM Assessments WHERE UserID = ? ORDER BY Date DESC LIMIT 1"
-	row := db.QueryRow(query, userID)
-
-	var assessmentID int
-	var date time.Time
-	var healthQuestions, physicalTestResults, riskLevel string
-
-	err := row.Scan(&assessmentID, &date, &healthQuestions, &physicalTestResults, &riskLevel)
-	if err == sql.ErrNoRows {
-		http.Error(w, "No records found", http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+	// Validate User ID
+	if req.UserID <= 0 {
+		log.Println("❌ Invalid UserID:", req.UserID)
+		http.Error(w, "Invalid or missing user_id", http.StatusBadRequest)
 		return
 	}
 
-	// Respond with assessment details
+	// Convert answers to JSON format
+	answersJSON, err := json.Marshal(req.Answers)
+	if err != nil {
+		log.Println("❌ Error marshalling answers JSON:", err)
+		http.Error(w, "Failed to process answers", http.StatusInternalServerError)
+		return
+	}
+
+	// Prepare JSON body for Risk Assessment Service
+	riskRequestBody, err := json.Marshal(req)
+	if err != nil {
+		log.Println("❌ Error encoding risk assessment request:", err)
+		http.Error(w, "Failed to encode risk assessment request", http.StatusInternalServerError)
+		return
+	}
+
+	// Call Risk Assessment Service
+	riskResponse, err := http.Post("http://localhost:8080/api/analyzeRisk", "application/json", bytes.NewBuffer(riskRequestBody))
+	if err != nil {
+		log.Println("❌ Error calling Risk Assessment Service:", err)
+		http.Error(w, "Failed to process risk assessment", http.StatusInternalServerError)
+		return
+	}
+	defer riskResponse.Body.Close()
+
+	// Parse Risk Assessment Response
+	var riskResult struct {
+		TotalScore     int    `json:"total_score"`
+		RiskLevel      string `json:"risk_level"`
+		Recommendation string `json:"recommendation"`
+	}
+
+	if err := json.NewDecoder(riskResponse.Body).Decode(&riskResult); err != nil {
+		log.Println("❌ Error decoding risk assessment response:", err)
+		http.Error(w, "Failed to parse risk assessment response", http.StatusInternalServerError)
+		return
+	}
+
+	// Store results in the database
+	insertQuery := `INSERT INTO Assessments (UserID, QuestionResponses, TotalScore, RiskLevel, Recommendation, DateCreated) 
+                    VALUES (?, ?, ?, ?, ?, NOW())`
+	result, err := db.Exec(insertQuery, req.UserID, answersJSON, riskResult.TotalScore, riskResult.RiskLevel, riskResult.Recommendation)
+	if err != nil {
+		log.Println("❌ Database insert error:", err)
+		http.Error(w, "Failed to store assessment data", http.StatusInternalServerError)
+		return
+	}
+
+	assessmentID, _ := result.LastInsertId()
+
+	// Send response
 	response := map[string]interface{}{
-		"assessment_id":         assessmentID,
-		"date":                  date,
-		"health_questions":      healthQuestions,
-		"physical_test_results": physicalTestResults,
-		"risk_level":            riskLevel,
+		"assessment_id":      assessmentID,
+		"user_id":            req.UserID,
+		"total_score":        riskResult.TotalScore,
+		"risk_level":         riskResult.RiskLevel,
+		"recommendation":     riskResult.Recommendation,
+		"question_responses": req.Answers,
 	}
 
+	log.Println("✅ Successfully stored assessment:", response)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
-// Handler to retrieve a user's full assessment history
-func assessmentHistoryHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	userID := r.URL.Query().Get("user_id")
-	if userID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+// Retrieve results of last assessment
+func getLastAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	type Request struct {
+		UserID int `json:"user_id"`
+	}
+	var req Request
+
+	// Decode JSON request
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON request", http.StatusBadRequest)
 		return
 	}
 
-	query := "SELECT AssessmentID, Date, HealthQuestions, PhysicalTestResults, RiskLevel FROM Assessments WHERE UserID = ? ORDER BY Date DESC"
-	rows, err := db.Query(query, userID)
+	// Validate User ID
+	if req.UserID <= 0 {
+		http.Error(w, "Invalid or missing user_id", http.StatusBadRequest)
+		return
+	}
+
+	// Query the database for the latest risk assessment for the user
+	query := `SELECT AssessmentID, TotalScore, RiskLevel, Recommendation, DateCreated 
+              FROM Assessments 
+              WHERE UserID = ? 
+              ORDER BY DateCreated DESC LIMIT 1`
+
+	assessment := Assessment{}
+
+	err := db.QueryRow(query, req.UserID).Scan(
+		&assessment.AssessmentID,
+		&assessment.TotalScore,
+		&assessment.RiskLevel,
+		&assessment.Recommendation,
+		&assessment.DateCreated,
+	)
+
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		if err == sql.ErrNoRows {
+			http.Error(w, "No risk assessments found for this user", http.StatusNotFound)
+		} else {
+			log.Println("Database query error:", err)
+			http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Send JSON response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(assessment)
+}
+
+func assessmentHistoryHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	type Request struct {
+		UserID int `json:"user_id"`
+	}
+	var req Request
+
+	// Decode JSON request
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON request", http.StatusBadRequest)
+		return
+	}
+
+	// Validate User ID
+	if req.UserID <= 0 {
+		http.Error(w, "Invalid or missing user_id", http.StatusBadRequest)
+		return
+	}
+
+	// Query the database for all risk assessments for the user
+	query := `SELECT AssessmentID, TotalScore, RiskLevel, Recommendation, CreatedAt 
+              FROM Assessments 
+              WHERE UserID = ? 
+              ORDER BY CreatedAt DESC`
+
+	rows, err := db.Query(query, req.UserID)
+	if err != nil {
+		log.Println("Database query error:", err)
+		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	// Store multiple assessments
-	var assessments []map[string]interface{}
-	for rows.Next() {
-		var assessmentID int
-		var date time.Time
-		var healthQuestions, physicalTestResults, riskLevel string
+	var assessments []Assessment
 
-		if err := rows.Scan(&assessmentID, &date, &healthQuestions, &physicalTestResults, &riskLevel); err != nil {
-			http.Error(w, "Data retrieval error", http.StatusInternalServerError)
+	// Iterate over rows
+	for rows.Next() {
+		var assessment Assessment
+		if err := rows.Scan(&assessment.AssessmentID, &assessment.TotalScore, &assessment.RiskLevel, &assessment.Recommendation, &assessment.DateCreated); err != nil {
+			log.Println("Error scanning row:", err)
+			http.Error(w, "Failed to process data", http.StatusInternalServerError)
 			return
 		}
-
-		assessments = append(assessments, map[string]interface{}{
-			"assessment_id":         assessmentID,
-			"date":                  date,
-			"health_questions":      healthQuestions,
-			"physical_test_results": physicalTestResults,
-			"risk_level":            riskLevel,
-		})
+		assessments = append(assessments, assessment)
 	}
 
-	// Send response
+	// Check if no records were found
+	if len(assessments) == 0 {
+		http.Error(w, "No risk assessments found for this user", http.StatusNotFound)
+		return
+	}
+
+	// Send JSON response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(assessments)
-}
-
-// Handler to retrieve a specific assessment result based on assessment_id
-func getResultsHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	// Parse assessment ID from query parameters
-	assessmentID := r.URL.Query().Get("assessment_id")
-	if assessmentID == "" {
-		http.Error(w, "Assessment ID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Query the database for the specific assessment
-	query := "SELECT AssessmentID, UserID, Date, HealthQuestions, PhysicalTestResults, RiskLevel FROM Assessments WHERE AssessmentID = ?"
-	row := db.QueryRow(query, assessmentID)
-
-	var assessment struct {
-		AssessmentID        int       `json:"assessment_id"`
-		UserID              int       `json:"user_id"`
-		Date                time.Time `json:"date"`
-		HealthQuestions     string    `json:"health_questions"`
-		PhysicalTestResults string    `json:"physical_test_results"`
-		RiskLevel           string    `json:"risk_level"`
-	}
-
-	err := row.Scan(&assessment.AssessmentID, &assessment.UserID, &assessment.Date, &assessment.HealthQuestions, &assessment.PhysicalTestResults, &assessment.RiskLevel)
-	if err == sql.ErrNoRows {
-		http.Error(w, "Assessment not found", http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-
-	// Send the response
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(assessment)
 }

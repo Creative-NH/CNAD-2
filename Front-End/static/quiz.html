@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fall Risk Questionnaire</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
@@ -30,7 +30,7 @@
 
         async function fetchQuestions() {
             const language = localStorage.getItem("selectedLanguage") || "English";
-            const response = await fetch(`http://localhost/api/self_assessment/questionnaire?language=${language}`);
+            const response = await fetch(`http://localhost:5000/api/questionnaire?language=${language}`);
             questions = await response.json();
             currentIndex = 0;
             userResponses = {}; 
@@ -90,13 +90,22 @@
         }
 
         async function submitResults() {
+            localStorage.setItem("user_id", "1");
+            const userId = localStorage.getItem("user_id");
+            if (!userId) {
+                alert("Unable to retrieve User ID");
+                return;
+            }
             try {
-                const response = await fetch("http://localhost/api/self_assessment/submit", {
+                const response = await fetch("http://localhost:5000/api/addAssessmentResults", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify(userResponses)
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        answers: userResponses
+                    })
                 });
 
                 if (response.ok) {

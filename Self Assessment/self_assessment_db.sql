@@ -2,42 +2,51 @@
 DROP database IF EXISTS self_assessment_db;
 CREATE database self_assessment_db;
 USE self_assessment_db;
+
 CREATE TABLE Assessments (
     AssessmentID INT AUTO_INCREMENT PRIMARY KEY,
     UserID INT NOT NULL,
-    Date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    HealthQuestions TEXT NOT NULL,
-    PhysicalTestResults TEXT,
-    RiskLevel ENUM('low', 'moderate', 'high') DEFAULT 'low'
+    DateCreated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    QuestionResponses TEXT NOT NULL,
+    TotalScore INT,
+    RiskLevel ENUM('Low', 'Moderate', 'High'),
+    Recommendation TEXT
 );
+
 -- English Questions
 CREATE TABLE QuestionsEn (
     QuestionID INT AUTO_INCREMENT PRIMARY KEY,
     QuestionContent VARCHAR(500) NOT NULL, 
     QuestionOptions VARCHAR(500) NOT NULL 
 );
+
 -- Chinese (Simplified) Questions
 CREATE TABLE QuestionsCn (
     QuestionID INT AUTO_INCREMENT PRIMARY KEY,
     QuestionContent VARCHAR(500) NOT NULL, 
     QuestionOptions VARCHAR(500) NOT NULL 
 );
+
 -- Malay Questions
 CREATE TABLE QuestionsMy (
     QuestionID INT AUTO_INCREMENT PRIMARY KEY,
     QuestionContent VARCHAR(500) NOT NULL, 
     QuestionOptions VARCHAR(500) NOT NULL 
 );
+
 -- Tamil Questions
 CREATE TABLE QuestionsTa (
     QuestionID INT AUTO_INCREMENT PRIMARY KEY,
     QuestionContent VARCHAR(500) NOT NULL, 
     QuestionOptions VARCHAR(500) NOT NULL 
 );
-INSERT INTO Assessments (UserID, HealthQuestions, PhysicalTestResults) VALUES
-(1, '{"dizziness": "no", "balance": "good", "falls": 0}', '{"reaction_time": 0.8, "balance_score": 85}'),
-(1, '{"dizziness": "yes", "balance": "poor", "falls": 2}', '{"reaction_time": 1.5, "balance_score": 60}'),
-(2, '{"dizziness": "yes", "balance": "poor", "falls": 5}', '{"reaction_time": 2.0, "balance_score": 40}');
+
+
+INSERT INTO Assessments (UserID, QuestionResponses, TotalScore, RiskLevel, Recommendation) VALUES
+(1, '{ 1: 2, 2: 3, 3: 2, 4: 1, 5: 3, 6: 2, 7: 2, 8: 3, 9: 2, 10: 1 }', 15, 'Moderate', 'Consider physical therapy, improve home safety, and monitor medications.'),
+(1, '{ 1: 2, 2: 2, 3: 1, 4: 2, 5: 1, 6: 2, 7: 2, 8: 2, 9: 2, 10: 1 }', 8, 'Low', 'Maintain a healthy lifestyle and exercise regularly.'),
+(2, '{ 1: 1, 2: 1, 3: 2, 4: 4, 5: 3, 6: 1, 7: 2, 8: 2, 9: 1, 10: 3 }', 18, 'High', 'Consult a healthcare provider for a fall risk assessment and use mobility aids.');
+
 INSERT INTO QuestionsEn (QuestionContent, QuestionOptions) 
 VALUES 
 ("Do you experience dizziness?", '["Yes", "No"]'),
