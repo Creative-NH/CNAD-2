@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pie Chart with Arrow Directions</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .arrow-display {
+            font-size: 40px;
+            margin-bottom: 10px;
+            opacity: 1; /* Default opacity */
+            transition: opacity 0.3s; /* Smooth opacity transition */
+        }
+
+        .pie-chart-container {
+            transform: rotate(-22.5deg); /* Rotate the entire pie chart */
+        }
+
+        .pie-chart {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            position: relative;
+            background: conic-gradient(
+                black 0% 12.4%, white 12.4% 12.5%, 
+                black 12.5% 24.9%, white 24.9% 25%, 
+                black 25% 37.4%, white 37.4% 37.5%, 
+                black 37.5% 49.9%, white 49.9% 50%, 
+                black 50% 62.4%, white 62.4% 62.5%, 
+                black 62.5% 74.9%, white 74.9% 75%, 
+                black 75% 87.4%, white 87.4% 87.5%, 
+                black 87.5% 99.9%, white 99.9% 100%
+            );
+            clip-path: circle(50% at 50% 50%);
+        }
+
+        .pie-chart::before {
+            content: '';
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        .pie-piece {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            clip-path: polygon(50% 50%, 100% 50%, 100% 0%);
+            transform-origin: 50% 50%;
+            cursor: pointer;
+            z-index: 1;
+            transition: opacity 0.5s;
+        }
+
+        .pie-piece:hover {
+            opacity: 0.7;
+        }
+
+        .feedback-icon {
+            position: fixed;
+            top: 46.5%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            z-index: 1000;
+            display: none; /* Initially hidden */
+        }
+
+        .tick {
+            color: green; /* Green color for tick */
+        }
+
+        .cross {
+            color: red; /* Red color for cross */
+        }
+
+        /* Correct positioning for each pie piece */
+        .pie-piece:nth-child(1) { transform: rotate(0deg); }
+        .pie-piece:nth-child(2) { transform: rotate(45deg); }
+        .pie-piece:nth-child(3) { transform: rotate(90deg); }
+        .pie-piece:nth-child(4) { transform: rotate(135deg); }
+        .pie-piece:nth-child(5) { transform: rotate(180deg); }
+        .pie-piece:nth-child(6) { transform: rotate(225deg); }
+        .pie-piece:nth-child(7) { transform: rotate(270deg); }
+        .pie-piece:nth-child(8) { transform: rotate(315deg); }
+    </style>
+</head>
+<body>
+
+    <div class="arrow-display">⬆️</div> <!-- Display current arrow -->
+    <div class="pie-chart-container">
+        <div class="pie-chart">
+            <div class="pie-piece" onclick="checkAnswer('↗️')"></div> <!-- Piece 1 -->
+            <div class="pie-piece" onclick="checkAnswer('➡️')"></div> <!-- Piece 2 -->
+            <div class="pie-piece" onclick="checkAnswer('↘️')"></div> <!-- Piece 3 -->
+            <div class="pie-piece" onclick="checkAnswer('⬇️')"></div> <!-- Piece 4 -->
+            <div class="pie-piece" onclick="checkAnswer('↙️')"></div> <!-- Piece 5 -->
+            <div class="pie-piece" onclick="checkAnswer('⬅️')"></div> <!-- Piece 6 -->
+            <div class="pie-piece" onclick="checkAnswer('↖️')"></div> <!-- Piece 7 -->
+            <div class="pie-piece" onclick="checkAnswer('⬆️')"></div> <!-- Piece 8 -->
+        </div>
+    </div>
+    <h3 id="tries-left">Tries left: 5</h3> <!-- Display tries left -->
+    <h3 id="eye-indicator">Testing: Left Eye</h3> <!-- Display which eye is being tested -->
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+    const $arrowDisplay = $('.arrow-display');
+    const $tick = $('<div class="feedback-icon tick">✔️</div>').appendTo('body').hide(); // Tick icon for correct answers
+    const $cross = $('<div class="feedback-icon cross">❌</div>').appendTo('body').hide(); // Cross icon for wrong answers
+    const $triesLeftDisplay = $('#tries-left');
+    const $eyeIndicator = $('#eye-indicator');
+
+    // Mapping of pie pieces to directions
+    const directions = ['↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️', '⬆️'];
+    let currentDirection = '⬆️'; // Start with piece 8
+    let triesLeft = 5; // Number of tries
+    let correctAnswers = 0; // Track correct answers
+    let arrowOpacity = 1; // Initial opacity of the arrow display
+    let reductionFactor = 0.5; // Initial reduction factor for opacity
+    let currentEye = 'left'; // Start with left eye
+    let leftEyeScore = 0;
+    let rightEyeScore = 0;
+
+    function generateNewDirection() {
+        currentDirection = directions[Math.floor(Math.random() * directions.length)];
+        $arrowDisplay.text(currentDirection); // Update arrow display
+    }
+
+    function resetForNextEye() {
+        triesLeft = 5; // Reset tries
+        correctAnswers = 0; // Reset correct answers
+        arrowOpacity = 1; // Reset opacity
+        reductionFactor = 0.5; // Reset reduction factor
+        $arrowDisplay.css('opacity', arrowOpacity); // Reset arrow opacity
+        $triesLeftDisplay.text(`Tries left: ${triesLeft}`); // Update tries left display
+        generateNewDirection(); // Generate new direction
+    }
+
+    function checkAnswer(selectedDirection) {
+        if (triesLeft <= 0) {
+            if (currentEye === 'left') {
+                leftEyeScore = correctAnswers;
+                currentEye = 'right';
+                $eyeIndicator.text('Testing: Right Eye');
+                resetForNextEye(); // Reset for the right eye
+                return;
+            } else {
+                rightEyeScore = correctAnswers;
+                postResults();
+                return;
+            }
+        }
+
+        // Decrease tries regardless of correct or wrong answer
+        triesLeft--;
+        $triesLeftDisplay.text(`Tries left: ${triesLeft}`);
+
+        if (selectedDirection === currentDirection) {
+            correctAnswers++;
+            $tick.fadeIn().delay(1000).fadeOut(); // Show tick for 1 second
+
+            // Apply the opacity reduction
+            arrowOpacity -= reductionFactor;
+            $arrowDisplay.css('opacity', arrowOpacity.toFixed(3)); // Set the new opacity (rounded to 3 decimals)
+
+            // Halve the reduction factor for the next correct answer
+            reductionFactor /= 2;
+        } else {
+            $cross.fadeIn().delay(1000).fadeOut(); // Show cross for 1 second
+        }
+
+        // Generate new direction after 1 second
+        setTimeout(generateNewDirection, 1000);
+
+        if (triesLeft === 0) {
+            setTimeout(() => {
+                if (currentEye === 'left') {
+                    leftEyeScore = correctAnswers;
+                    currentEye = 'right';
+                    $eyeIndicator.text('Testing: Right Eye');
+                    resetForNextEye(); // Reset for the right eye
+                } else {
+                    rightEyeScore = correctAnswers;
+                    postResults();
+                }
+            }, 500);
+        }
+    }
+
+    function postResults() {
+        const comment = generateComment(leftEyeScore, rightEyeScore);
+        const result = {
+            UserID: 5, // Replace with actual user ID
+            LeftEyeScore: leftEyeScore,
+            RightEyeScore: rightEyeScore,
+            Comments: comment
+        };
+
+        // Send POST request using jQuery
+        $.ajax({
+            url: 'http://localhost:8088/main.go',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(result),
+            success: function (data) {
+                console.log('Success:', data);
+                alert('Results posted successfully!');
+                window.location.href = "contrastResult.html"; // Redirect to the result page
+            },
+            error: function (error) {
+                console.error('Error:', error);
+                alert('Error posting results.');
+            }
+        });
+    }
+
+    function generateComment(leftScore, rightScore) {
+        if (leftScore >= 7 && rightScore >= 7) {
+            return "Your vision in both eyes is excellent.";
+        } else if (leftScore >= 5 && rightScore >= 5) {
+            return "Your vision in both eyes seems to be slightly reduced.";
+        } else {
+            return "Your vision in both eyes is significantly reduced.";
+        }
+    }
+
+    // Initialize with a random direction
+    generateNewDirection();
+
+    // Attach click event handlers to pie pieces
+    $('.pie-piece').on('click', function () {
+        const selectedDirection = $(this).attr('onclick').match(/checkAnswer\('(.*?)'\)/)[1];
+        checkAnswer(selectedDirection);
+    });
+});
+    </script>
+
+</body>
+</html>
