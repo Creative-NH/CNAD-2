@@ -79,8 +79,6 @@ func main() {
 	}
 }
 
-// Structure to handle assessment submissions
-
 type User struct {
 	UserID      int       `json:"id,omitempty"`
 	Name        string    `json:"name,omitempty"`

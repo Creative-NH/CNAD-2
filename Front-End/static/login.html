@@ -123,6 +123,9 @@
             <div class="text-center mt-3">
                 <button id="toggleButton" class="btn btn-link">Don't have an account? Register</button>
             </div>
+            <div class="text-center mt-3">
+                <button id="doctorButton" class="btn btn-link">Doctor Login</button>
+            </div>
 
             <p id="errorMessage" class="text-danger text-center mt-2"></p> 
         </div>
@@ -192,6 +195,10 @@
                 formTitle.innerText = "Register";
                 toggleButton.innerText = "Already have an account? Login";
             }
+        });
+
+        document.getElementById("doctorButton").addEventListener("click", function () {
+            window.location.href = "doctorLogin.html";
         });
         
         document.getElementById("loginForm").addEventListener("submit", async function (event) {

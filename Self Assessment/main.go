@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -58,6 +59,9 @@ func main() {
 	router.HandleFunc("/api/getLastAssessment", func(w http.ResponseWriter, r *http.Request) {
 		getLastAssessmentHandler(w, r, db)
 	}).Methods("POST")
+	router.HandleFunc("/api/getAssessment", func(w http.ResponseWriter, r *http.Request) {
+		getAssessmentHandler(w, r, db)
+	}).Methods("POST")
 	router.HandleFunc("/api/assessmentHistory", func(w http.ResponseWriter, r *http.Request) {
 		assessmentHistoryHandler(w, r, db)
 	}).Methods("POST")
@@ -80,11 +84,12 @@ func main() {
 // Structure to handle assessment submissions
 
 type Assessment struct {
-	AssessmentID   int    `json:"id"`
+	AssessmentID   int    `json:"id,omitempty"`
 	TotalScore     int    `json:"totalScore"`
 	RiskLevel      string `json:"riskLevel"`
 	Recommendation string `json:"recommendation"`
-	DateCreated    int    `json:"dateCreated"`
+	DateCreated    string `json:"dateCreated,omitempty"`
+	UserID	   	   int 	  `json:"user_id,omitempty"`
 }
 
 // Handler to retrieve questionnaire questions based on language (GET request with query string)
@@ -146,6 +151,57 @@ func questionnaireHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	json.NewEncoder(w).Encode(questions)
 }
 
+// Call Alert Service to send user notification
+func sendNotification(userID int, riskLevel string) {
+	// Define the notification message
+	var message string
+	if riskLevel == "Moderate" {
+		message = "Your assessment indicates a moderate risk. Please follow the recommended exercises."
+	} else if riskLevel == "High" {
+		message = "High risk detected. Please contact your healthcare provider immediately."
+	} else {
+		return // No need to send notification for low risk
+	}
+
+	// Create JSON payload
+	notificationBody, _ := json.Marshal(map[string]interface{}{
+		"user_id": userID,
+		"message": message,
+	})
+
+	// Send POST request to Alerts Service
+	resp, err := http.Post("http://localhost:5002/api/postNotifications", "application/json", bytes.NewBuffer(notificationBody))
+	if err != nil {
+		log.Println("Failed to send notification:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Log notification response
+	log.Printf("Notification sent for user %d with risk level %s\n", userID, riskLevel)
+}
+
+// Call Alert Service to send doctor alert
+func sendAlertToDoctors(userID int, assessmentID int64) {
+	log.Printf("Sending alert for high-risk user %d (Assessment ID: %d)\n", userID, assessmentID)
+
+	// Create JSON payload
+	alertBody, _ := json.Marshal(map[string]interface{}{
+		"assessment_id": assessmentID,
+	})
+
+	// Send POST request to Notification Service
+	resp, err := http.Post("http://localhost:5002/api/postAlerts", "application/json", bytes.NewBuffer(alertBody))
+	if err != nil {
+		log.Println("Failed to send alert to doctors:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	log.Printf("Alert successfully sent for assessment %d\n", assessmentID)
+}
+
+// Add Results from Risk Assessment into DB
 func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	type Request struct {
 		UserID  int         `json:"user_id"`
@@ -218,6 +274,16 @@ func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	assessmentID, _ := result.LastInsertId()
 
+	// if risk is moderate or high, Call Alert Service
+	if riskResult.RiskLevel == "Moderate" || riskResult.RiskLevel == "High" {
+		go sendNotification(req.UserID, riskResult.RiskLevel)
+	}
+
+	// **If risk is HIGH, send an alert to doctors**
+	if riskResult.RiskLevel == "High" {
+		go sendAlertToDoctors(req.UserID, assessmentID)
+	}
+	
 	// Send response
 	response := map[string]interface{}{
 		"assessment_id":      assessmentID,
@@ -284,6 +350,49 @@ func getLastAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB
 	json.NewEncoder(w).Encode(assessment)
 }
 
+// Retrieve results of a specific assessment
+func getAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	type Request struct {
+		AssessmentID int `json:"assessment_id"`
+	}
+	var req Request
+
+	// Decode JSON request
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Println("Invalid JSON request")
+		http.Error(w, "Invalid JSON request", http.StatusBadRequest)
+		return
+	}
+
+	// Query the database for the risk assessment for the user
+	query := `SELECT TotalScore, RiskLevel, Recommendation, UserID
+              FROM Assessments 
+              WHERE AssessmentID = ?`
+
+	assessment := Assessment{}
+
+	err := db.QueryRow(query, req.AssessmentID).Scan(
+		&assessment.TotalScore,
+		&assessment.RiskLevel,
+		&assessment.Recommendation,
+		&assessment.UserID,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "No risk assessments found for this user", http.StatusNotFound)
+		} else {
+			log.Println("Database query error:", err)
+			http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Send JSON response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(assessment)
+}
+
 func assessmentHistoryHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	type Request struct {
 		UserID int `json:"user_id"`
@@ -308,7 +417,7 @@ func assessmentHistoryHandler(w http.ResponseWriter, r *http.Request, db *sql.DB
 	query := `SELECT AssessmentID, TotalScore, RiskLevel, Recommendation, DateCreated
               FROM Assessments 
               WHERE UserID = ? 
-              ORDER BY CreatedAt DESC`
+              ORDER BY DateCreated DESC`
 
 	rows, err := db.Query(query, req.UserID)
 	if err != nil {
@@ -323,11 +432,21 @@ func assessmentHistoryHandler(w http.ResponseWriter, r *http.Request, db *sql.DB
 	// Iterate over rows
 	for rows.Next() {
 		var assessment Assessment
-		if err := rows.Scan(&assessment.AssessmentID, &assessment.TotalScore, &assessment.RiskLevel, &assessment.Recommendation, &assessment.DateCreated); err != nil {
+		var dateCreated time.Time
+
+		if err := rows.Scan(
+			&assessment.AssessmentID,
+			&assessment.TotalScore,
+			&assessment.RiskLevel,
+			&assessment.Recommendation,
+			&dateCreated,
+		); err != nil {
 			log.Println("Error scanning row:", err)
 			http.Error(w, "Failed to process data", http.StatusInternalServerError)
 			return
 		}
+
+		assessment.DateCreated = dateCreated.Format("2006-01-02 15:04:05")
 		assessments = append(assessments, assessment)
 	}
 

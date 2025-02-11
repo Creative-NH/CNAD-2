@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Fall Risk Assessment Results</title>
+    <title>Home</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="" name="keywords">
     <meta content="" name="description">
@@ -34,8 +34,8 @@
 
 <body class="bg-light">
     <script>
-        if (!localStorage.getItem("user_id")) {
-            window.location.href = "index.html";
+        if (!localStorage.getItem("doctor_id")) { // doctor_id
+            window.location.href = "doctorLogin.html";
         }
     </script>
 
@@ -50,7 +50,7 @@
 
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg bg-white navbar-light sticky-top p-0">
-        <a href="index.html" class="navbar-brand d-flex align-items-center px-4 px-lg-5">
+        <a href="doctorHome.html" class="navbar-brand d-flex align-items-center px-4 px-lg-5">
             <h1 class="m-0 text-primary"><img src="http://lionsclubs.org.sg/wp-content/uploads/2015/12/logo1.png" style="width: 10%;"> Befrienders</h1>
         </a>
         <button type="button" class="navbar-toggler me-4" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
@@ -58,36 +58,40 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarCollapse">
             <div class="navbar-nav ms-auto p-4 p-lg-0">
-                <a href="index.html" class="nav-item nav-link">Home</a>
-                <a href="profile.html" class="nav-item nav-link">Profile</a>
-                <a href="notifications.html" class="nav-item nav-link">Notifications</a>
-                <a href="assessmentHistory.html" class="nav-item nav-link">My Results</a>
-                <a href="contact.html" class="nav-item nav-link">Contact</a>
-                <a href="aboutus.html" class="nav-item nav-link">About Us</a>
+                <a href="doctorHome.html" class="nav-item nav-link active">Home</a>
                 <a href="#" class="nav-item nav-link logout-link" onclick="logout()">Log Out</a>
             </div>
-            <a href="quiz.html" class="btn btn-primary rounded-0 py-4 px-lg-5 d-none d-lg-block">Self-Assessment<i class="fa fa-arrow-right ms-3"></i></a>
         </div>
     </nav>
 
-    <!-- Assessment Results Section -->
-    <div class="container-fluid d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 100px);">
-        <div class="card shadow-lg p-4 col-md-8 col-lg-6">
-            <h2 class="text-center mb-4 text-primary">Fall Risk Assessment Results</h2>
-
-            <div class="card p-4">
-                <p class="fw-bold">Total Score: <span id="total_score" class="text-primary">Loading...</span></p>
-                <p class="fw-bold">Risk Level: <span id="risk_level" class="fw-bold">Loading...</span></p>
-                <p class="fw-bold">Recommendation:</p>
-                <p id="recommendation_text" class="text-muted">Loading...</p>
+    <!-- Homepage Content -->
+    <div id="report-container" class="container mt-5" style="min-height: calc(100vh - 100px);">
+        <div class="text-center">
+            <h2>Welcome, <span id="doctor-name"></span> (<span id="doctor-email"></span>)</h2>
+        </div>
+        <div class="container mt-4">
+            <h4 class="text-primary">Recent Alerts (Past 3 Days)</h4>
+        
+            <!-- Message if no alerts exist -->
+            <div id="no-alerts-message" class="alert alert-info text-center d-none">
+                No new alerts in the past 3 days.
             </div>
-
-            <div class="text-center mt-3">
-                <a href="quiz.html" class="btn btn-primary rounded-pill px-4">Retake Assessment</a>
-            </div>
+        
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Alert ID</th>
+                        <th>Assessment ID</th>
+                        <th>Sent At</th>
+                    </tr>
+                </thead>
+                <tbody id="alerts-table">
+                    <tr><td colspan="3" class="text-center">Loading...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
-
+    
     <!-- Footer Start -->
     <div class="container-fluid bg-dark text-light footer mt-5 pt-5 wow fadeIn" data-wow-delay="0.1s">
         <div class="container py-5">
@@ -133,48 +137,75 @@
 
     <!-- JavaScript -->
     <script>
-        // Logout
-        function logout() {
-            localStorage.removeItem("user_id");
-            window.location.href = "index.html";
-        }
+        document.addEventListener("DOMContentLoaded", function () {
+            async function fetchDoctorDetails() {
+                doctorId = localStorage.getItem("doctor_id");
+                try {
+                    const response = await fetch("http://localhost:5004/api/getDoctorDetails", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ doctor_id: parseInt(doctorId) })
+                    });
 
-        // Retrieve Assessment Results
-        async function fetchLatestResult() {
-            const userId = localStorage.getItem("user_id");
+                    if (!response.ok) {
+                        throw new Error("Failed to fetch doctor details.");
+                    }
 
-            fetch(`http://localhost:5000/api/getLastAssessment`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: parseInt(userId) })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("total_score").innerText = data.totalScore;
-                document.getElementById("risk_level").innerText = data.riskLevel;
-
-                // Apply color class based on risk level
-                const riskLevelElement = document.getElementById("risk_level");
-                riskLevelElement.classList.remove("risk-low", "risk-moderate", "risk-high");
-
-                if (data.risk_level === "Low") {
-                    riskLevelElement.classList.add("risk-low");
-                } else if (data.risk_level === "Moderate") {
-                    riskLevelElement.classList.add("risk-moderate");
-                } else if (data.risk_level === "High") {
-                    riskLevelElement.classList.add("risk-high");
+                    const data = await response.json();
+                    document.getElementById("doctor-name").textContent = data.name;
+                    document.getElementById("doctor-email").textContent = data.email;
+                } catch (error) {
+                    console.error("Error fetching doctor details:", error);
+                    document.getElementById("report-container").innerHTML = `<h4 class="text-center text-danger">Error loading profile.</h4>`;
                 }
+            }
 
-                document.getElementById("recommendation_text").innerText = data.recommendation;
-            })
-            .catch(error => {
-                console.error("Error fetching data:", error);
-                document.body.innerHTML = "<h3>Failed to load assessment data. Please try again.</h3>";
-            });
+            async function fetchDoctorAlerts() {
+                try {
+                    const response = await fetch("http://localhost:5002/api/getAlerts", {
+                        method: "GET",
+                        headers: { "Content-Type": "application/json" }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Failed to fetch alerts.");
+                    }
+
+                    const data = await response.json();
+                    const tableBody = document.getElementById("alerts-table");
+
+                    tableBody.innerHTML = "";
+
+                    if (data.length === 0) {
+                        document.getElementById("no-alerts-message").classList.remove("d-none"); // Show message
+                        return;
+                    }
+
+                    data.forEach((alert) => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>${alert.alert_id}</td>
+                            <td><a href="report.html?assessment_id=${alert.assessment_id}">${alert.assessment_id}</a></td>
+                            <td>${alert.sent_at}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+
+                    document.getElementById("no-alerts-message").classList.add("d-none"); // Hide message when alerts exist
+                } catch (error) {
+                    console.error("Error fetching alerts:", error);
+                    document.getElementById("alerts-table").innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error loading alerts.</td></tr>`;
+                }
+            }
+
+            fetchDoctorAlerts();
+            fetchDoctorDetails();
+        });
+        
+        function logout() {
+            localStorage.removeItem("doctor_id");
+            window.location.href = "doctorLogin.html";
         }
-
-        // Fetch Assessment Results on page load
-        fetchLatestResult();
     </script>
 
     <!-- JavaScript Libraries -->

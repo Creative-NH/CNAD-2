@@ -1,4 +1,5 @@
 -- Notifications and Alerts Service
+DROP database IF EXISTS notifications_db;
 CREATE database notifications_db;
 USE notifications_db;
 
@@ -9,6 +10,8 @@ CREATE TABLE Notifications (
     SentAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO Notifications (UserID, Message) VALUES
-(1, 'Your assessment indicates a moderate risk. Please follow the recommended exercises.'),
-(2, 'High risk detected. Please contact your healthcare provider immediately.');
+CREATE TABLE Alerts (
+    AlertID INT AUTO_INCREMENT PRIMARY KEY,
+    AssessmentID INT NOT NULL,
+    SentAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
