@@ -129,6 +129,7 @@ func questionnaireHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		var questionOptions string // Stored in JSON format
 
 		if err := rows.Scan(&questionID, &questionContent, &questionOptions); err != nil {
+			log.Println("Data retrieval error: ", err)
 			http.Error(w, "Data retrieval error", http.StatusInternalServerError)
 			return
 		}
@@ -155,14 +156,14 @@ func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	// Decode JSON request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Println("❌ Error decoding JSON request:", err)
+		log.Println("Error decoding JSON request:", err)
 		http.Error(w, "Invalid JSON request", http.StatusBadRequest)
 		return
 	}
 
 	// Validate User ID
 	if req.UserID <= 0 {
-		log.Println("❌ Invalid UserID:", req.UserID)
+		log.Println("Invalid UserID:", req.UserID)
 		http.Error(w, "Invalid or missing user_id", http.StatusBadRequest)
 		return
 	}
@@ -170,7 +171,7 @@ func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Convert answers to JSON format
 	answersJSON, err := json.Marshal(req.Answers)
 	if err != nil {
-		log.Println("❌ Error marshalling answers JSON:", err)
+		log.Println("Error marshalling answers JSON:", err)
 		http.Error(w, "Failed to process answers", http.StatusInternalServerError)
 		return
 	}
@@ -178,7 +179,7 @@ func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Prepare JSON body for Risk Assessment Service
 	riskRequestBody, err := json.Marshal(req)
 	if err != nil {
-		log.Println("❌ Error encoding risk assessment request:", err)
+		log.Println("Error encoding risk assessment request:", err)
 		http.Error(w, "Failed to encode risk assessment request", http.StatusInternalServerError)
 		return
 	}
@@ -186,7 +187,7 @@ func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Call Risk Assessment Service
 	riskResponse, err := http.Post("http://localhost:8080/api/analyzeRisk", "application/json", bytes.NewBuffer(riskRequestBody))
 	if err != nil {
-		log.Println("❌ Error calling Risk Assessment Service:", err)
+		log.Println("Error calling Risk Assessment Service:", err)
 		http.Error(w, "Failed to process risk assessment", http.StatusInternalServerError)
 		return
 	}
@@ -200,7 +201,7 @@ func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	}
 
 	if err := json.NewDecoder(riskResponse.Body).Decode(&riskResult); err != nil {
-		log.Println("❌ Error decoding risk assessment response:", err)
+		log.Println("Error decoding risk assessment response:", err)
 		http.Error(w, "Failed to parse risk assessment response", http.StatusInternalServerError)
 		return
 	}
@@ -210,7 +211,7 @@ func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
                     VALUES (?, ?, ?, ?, ?, NOW())`
 	result, err := db.Exec(insertQuery, req.UserID, answersJSON, riskResult.TotalScore, riskResult.RiskLevel, riskResult.Recommendation)
 	if err != nil {
-		log.Println("❌ Database insert error:", err)
+		log.Println("Database insert error:", err)
 		http.Error(w, "Failed to store assessment data", http.StatusInternalServerError)
 		return
 	}
@@ -227,7 +228,7 @@ func addAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		"question_responses": req.Answers,
 	}
 
-	log.Println("✅ Successfully stored assessment:", response)
+	log.Println("Successfully stored assessment:", response)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -241,18 +242,20 @@ func getLastAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB
 
 	// Decode JSON request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Println("Invalid JSON request")
 		http.Error(w, "Invalid JSON request", http.StatusBadRequest)
 		return
 	}
 
 	// Validate User ID
 	if req.UserID <= 0 {
+		log.Println("Invalid or missing User ID")
 		http.Error(w, "Invalid or missing user_id", http.StatusBadRequest)
 		return
 	}
 
 	// Query the database for the latest risk assessment for the user
-	query := `SELECT AssessmentID, TotalScore, RiskLevel, Recommendation, DateCreated 
+	query := `SELECT AssessmentID, TotalScore, RiskLevel, Recommendation 
               FROM Assessments 
               WHERE UserID = ? 
               ORDER BY DateCreated DESC LIMIT 1`
@@ -264,7 +267,6 @@ func getLastAssessmentHandler(w http.ResponseWriter, r *http.Request, db *sql.DB
 		&assessment.TotalScore,
 		&assessment.RiskLevel,
 		&assessment.Recommendation,
-		&assessment.DateCreated,
 	)
 
 	if err != nil {
@@ -290,18 +292,20 @@ func assessmentHistoryHandler(w http.ResponseWriter, r *http.Request, db *sql.DB
 
 	// Decode JSON request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Println("Invalid JSON request")
 		http.Error(w, "Invalid JSON request", http.StatusBadRequest)
 		return
 	}
 
 	// Validate User ID
 	if req.UserID <= 0 {
+		log.Println("Invalid or missing User ID")
 		http.Error(w, "Invalid or missing user_id", http.StatusBadRequest)
 		return
 	}
 
 	// Query the database for all risk assessments for the user
-	query := `SELECT AssessmentID, TotalScore, RiskLevel, Recommendation, CreatedAt 
+	query := `SELECT AssessmentID, TotalScore, RiskLevel, Recommendation, DateCreated
               FROM Assessments 
               WHERE UserID = ? 
               ORDER BY CreatedAt DESC`

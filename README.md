@@ -9,3 +9,7 @@ Notification Service (http://localhost/api/notifications): Sends alerts to careg
 Report Service (http://localhost/api/generate_report): Generates reports for users and professionals
 Doctor Service (http://localhost/api/doctor_management): Displays reports to professionals, enabling them to contact elderly in need and resolve urgent cases.
 Front-End Service (http://localhost/api/frontend): displays web interface
+
+
+Links
+Website Template: https://htmlcodex.com
