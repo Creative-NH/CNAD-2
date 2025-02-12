@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <title>Instructions</title>
     <style>
         body {
@@ -12,17 +13,23 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            background-color: #ECF0F4; /* Updated background color */
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 80vh; /* Keep content centered */
+            width: 100%;
         }
 
         .instruction-container {
             text-align: center;
-            max-width: 400px;
+            max-width: 600px;
             padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .instruction-section {
@@ -38,20 +45,40 @@
             margin-bottom: 10px;
         }
 
+        .instruction-section img {
+            display: block;
+            margin: 0 auto 80px; /* Centers the image */
+            width: 120px; /* Adjust the width */
+            height: auto; /* Maintain aspect ratio */
+        }
+
         .instruction-section p {
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-size: 28px; /* Increase font size */
+            text-align: center; /* Ensure text is centered */
+            margin-top: 15px; /* Add spacing */
+            font-weight: 200;
+        }
+
+
+        /* Pagination and Button Container */
+        .bottom-container {
+            position: fixed;
+            bottom: 30px; /* Keeps it at the bottom with margin */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .dot-pagination {
             display: flex;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .dot {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             background-color: #ccc;
             border-radius: 50%;
             margin: 0 5px;
@@ -64,50 +91,71 @@
         }
 
         .next-button {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
+            background-color: transparent; /* Transparent background */
+            color: #0d6efd; /* Bootstrap primary blue */
+            border: 2px solid #0d6efd; /* Blue border */
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Poppins', sans-serif;
         }
 
         .next-button:hover {
-            background-color: #45a049;
+            background-color: #0d6efd; /* Blue background on hover */
+            color: white; /* White text on hover */
+            border: 2px solid transparent; /* Hide border on hover */
         }
+
+        
     </style>
 </head>
 <body>
 
-    <div class="instruction-container">
-        <!-- Section 1 -->
-        <div class="instruction-section active">
-            <h2>Step 1</h2>
-            <p>Cover your eyes.</p>
-        </div>
+    <div class="content-wrapper">
+        <div class="instruction-container">
+            <!-- Section 1 -->
+            <div class="instruction-section active">
+                <img src="https://cdn-icons-png.flaticon.com/512/0/370.png">
+                <p>In your device settings, turn your screen brightness all the way up for the most accurate results.</p>
+            </div>
 
-        <!-- Section 2 -->
-        <div class="instruction-section">
-            <h2>Step 2</h2>
-            <p>Keep your device at arm's length away from the screen.</p>
-        </div>
+            <!-- Section 2 -->
+            <div class="instruction-section">
+                <img src="https://www.freepnglogos.com/uploads/glasses-png/glasses-frame-vector-graphic-pixabay-29.png">
+                <p>Be prepare to wear ur glasses if need!</p>
+            </div>
 
-        <!-- Section 3 -->
-        <div class="instruction-section">
-            <h2>Step 3</h2>
-            <p>Mark the corresponding arrow direction on the pie ring.</p>
-        </div>
+            <!-- Section 3 -->
+            <div class="instruction-section">
+                <img src="https://cdn-icons-png.flaticon.com/512/8231/8231725.png">
+                <p><strong>Eyes Ready?</strong><br>Cover your left eye.</p>
+            </div>
 
-        <!-- Dot Pagination -->
+            <!-- Section 4 -->
+            <div class="instruction-section">
+                <img src="https://cdn-icons-png.flaticon.com/128/16882/16882070.png">
+                <p><strong>Keey Away.</strong><br>Keep your device arm's length during the check.</p>
+            </div>
+
+            <div class="instruction-section">
+                <img src="https://cdn-icons-png.flaticon.com/128/4367/4367959.png">
+                <p><strong>Mark the spot.</strong><br>See top arrow? Mark the corresponding spot on the ring?</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Pagination Dots and Button at the Bottom -->
+    <div class="bottom-container">
         <div class="dot-pagination">
             <div class="dot active" data-index="0"></div>
             <div class="dot" data-index="1"></div>
             <div class="dot" data-index="2"></div>
+            <div class="dot" data-index="3"></div>
+            <div class="dot" data-index="4"></div>
         </div>
-
-        <!-- Next Step Button -->
         <button class="next-button">Next Step</button>
     </div>
 

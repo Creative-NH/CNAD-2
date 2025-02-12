@@ -30,6 +30,22 @@
 
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
+    <style>
+        .vision-score-label {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 10px; /* Rounded corners */
+            color: white; /* White text */
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Custom background color for "Below Average" */
+        .bg-orange {
+            background-color: #ff8c00; /* Orange */
+        }
+    </style>
 </head>
 
 <body class="bg-light">
@@ -71,7 +87,7 @@
     </nav>
 
     <!-- Assessment History Section -->
-    <div class="container-fluid d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 100px);">
+    <div class="container-fluid d-flex align-items-center justify-content-center" style="min-height: calc(80vh - 100px);">
         <div id="history-container">
             <h2 class="text-center text-primary mb-4">Assessment History</h2>
             <table class="table table-bordered table-hover">
@@ -92,6 +108,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Vision Assessment History Section -->
+    <div class="container-fluid d-flex align-items-center justify-content-center mt-5" style="min-height: calc(80vh - 100px);">
+        <div id="vision-history-container">
+            <h2 class="text-center text-primary mb-4">Vision Assessment History</h2>
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Left Eye Score</th>
+                        <th>Right Eye Score</th>
+                        <th>Comments</th>
+                    </tr>
+                </thead>
+                <tbody id="vision-assessment-history">
+                    <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                </tbody>
+            </table>
+            <div class="text-center mt-4">
+                <a href="visionInstructions.html" class="btn btn-primary rounded-pill px-4">Take New Assessment</a>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Footer Start -->
     <div class="container-fluid bg-dark text-light footer mt-5 pt-5 wow fadeIn" data-wow-delay="0.1s">
@@ -194,6 +234,8 @@
             }
         }
 
+        
+
         function getRiskLevelClass(riskLevel) {
             if (riskLevel === "Low") return "bg-success";
             if (riskLevel === "Moderate") return "bg-warning";
@@ -201,6 +243,76 @@
             return "bg-secondary";
         }
         
+
+        // Fetch All Vision Assessment History
+        async function fetchAllVisionAssessmentHistory() {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) {
+        window.location.href = "index.html";
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8088/getAllVisionResults?userID=${userId}`);
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch vision history.");
+        }
+
+        const data = await response.json();
+        const visionHistoryTable = document.getElementById("vision-assessment-history");
+        visionHistoryTable.innerHTML = "";
+
+        if (!data || data.length === 0) {
+            visionHistoryTable.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No vision assessments found.</td></tr>`;
+            return;
+        }
+
+        data.forEach((result) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${new Date(result.CreatedAt).toLocaleString()}</td>
+                <td><span class="vision-score-label ${getVisionScoreClass(result.LeftEyeScore)}">${getVisionScoreLabel(result.LeftEyeScore)}</span></td>
+                <td><span class="vision-score-label ${getVisionScoreClass(result.RightEyeScore)}">${getVisionScoreLabel(result.RightEyeScore)}</span></td>
+                <td>${result.Comments}</td>
+            `;
+            visionHistoryTable.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error fetching vision history:", error);
+        document.getElementById("vision-history-container").innerHTML = `<h4 class="text-center text-danger">Failed to load vision assessment history.</h4>`;
+    }
+}
+
+// Helper function to map scores to labels
+function getVisionScoreLabel(score) {
+    switch (score) {
+        case 5: return "Perfect Vision";
+        case 4: return "Very Good";
+        case 3: return "Moderate";
+        case 2: return "Below Average";
+        case 1: return "Weak Vision";
+        case 0: return "Severely Impaired";
+        default: return "Unknown";
+    }
+}
+
+// Helper function to map scores to background colors
+function getVisionScoreClass(score) {
+    switch (score) {
+        case 5: return "bg-success"; // Green
+        case 4: return "bg-info";   // Light Blue
+        case 3: return "bg-warning"; // Yellow
+        case 2: return "bg-orange";  // Custom Orange
+        case 1: return "bg-danger";  // Red
+        case 0: return "bg-dark";    // Dark Gray
+        default: return "bg-secondary"; // Gray (for unknown scores)
+    }
+}
+
+        // Fetch Vision Assessment History on page load
+        fetchAllVisionAssessmentHistory();
+
         // Fetch Assessment History on page load
         fetchAssessmentHistory();
     </script>

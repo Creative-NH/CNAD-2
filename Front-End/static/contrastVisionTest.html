@@ -91,6 +91,55 @@
             color: red; /* Red color for cross */
         }
 
+        .transition-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f0f0f0;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 1099;
+        }
+
+        .transition-screen h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: black;
+        }
+
+        .transition-screen p {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: black;
+        }
+
+        .transition-img {
+            width: 120px; /* Adjust image size */
+            height: auto;
+            margin-bottom: 20px; /* Adds space between image and text */
+        }
+
+        .transition-screen button {
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+.transition-screen button:hover {
+    background: #0056b3;
+}
+
+
         /* Correct positioning for each pie piece */
         .pie-piece:nth-child(1) { transform: rotate(0deg); }
         .pie-piece:nth-child(2) { transform: rotate(45deg); }
@@ -117,8 +166,8 @@
             <div class="pie-piece" onclick="checkAnswer('⬆️')"></div> <!-- Piece 8 -->
         </div>
     </div>
-    <h3 id="tries-left">Tries left: 5</h3> <!-- Display tries left -->
-    <h3 id="eye-indicator">Testing: Left Eye</h3> <!-- Display which eye is being tested -->
+    <!-- <h3 id="tries-left">Tries left: 5</h3> Display tries left -->
+    <h3 id="eye-indicator">Cover your left eye</h3> <!-- Display which eye is being tested -->
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -129,31 +178,57 @@
     const $cross = $('<div class="feedback-icon cross">❌</div>').appendTo('body').hide(); // Cross icon for wrong answers
     const $triesLeftDisplay = $('#tries-left');
     const $eyeIndicator = $('#eye-indicator');
+    const $transitionScreen = $('<div class="transition-screen"></div>').appendTo('body').hide(); // Transition screen
+    let userID = parseInt(localStorage.getItem("user_id"), 10); // Convert to integer (base 10)
+
+    if (isNaN(userID)) {
+        console.error("Invalid user ID from localStorage");
+        userID = 0; // Default value if conversion fails
+    }
 
     // Mapping of pie pieces to directions
     const directions = ['↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️', '⬆️'];
     let currentDirection = '⬆️'; // Start with piece 8
-    let triesLeft = 5; // Number of tries
-    let correctAnswers = 0; // Track correct answers
-    let arrowOpacity = 1; // Initial opacity of the arrow display
-    let reductionFactor = 0.5; // Initial reduction factor for opacity
-    let currentEye = 'left'; // Start with left eye
+    let triesLeft = 5;
+    let correctAnswers = 0;
+    let arrowOpacity = 1;
+    let reductionFactor = 0.5;
+    let currentEye = 'left';
     let leftEyeScore = 0;
     let rightEyeScore = 0;
 
     function generateNewDirection() {
         currentDirection = directions[Math.floor(Math.random() * directions.length)];
-        $arrowDisplay.text(currentDirection); // Update arrow display
+        $arrowDisplay.text(currentDirection);
+    }
+
+    function showTransitionScreen() {
+    setTimeout(() => { // Delay the transition screen appearance
+        $('body').append(`
+            <div class="transition-screen">
+                <img src="https://cdn-icons-png.flaticon.com/512/8231/8231725.png" class="transition-img">
+                <h2>Cover your right eye</h2>
+                <p>Make sure your right eye is completely covered.</p>
+                <button id="ready-btn" class="btn btn-primary btn-lg">I'm Ready</button>
+            </div>
+        `);
+
+        // Add event listener for "I'm Ready" button
+        $('#ready-btn').on('click', function () {
+            $('.transition-screen').remove();
+            startRightEyeTest(); // Continue to right eye test
+        });
+        }, 500); // Delay of 1.5 seconds before transition appears
     }
 
     function resetForNextEye() {
-        triesLeft = 5; // Reset tries
-        correctAnswers = 0; // Reset correct answers
-        arrowOpacity = 1; // Reset opacity
-        reductionFactor = 0.5; // Reset reduction factor
-        $arrowDisplay.css('opacity', arrowOpacity); // Reset arrow opacity
-        $triesLeftDisplay.text(`Tries left: ${triesLeft}`); // Update tries left display
-        generateNewDirection(); // Generate new direction
+        triesLeft = 5;
+        correctAnswers = 0;
+        arrowOpacity = 1;
+        reductionFactor = 0.5;
+        $arrowDisplay.css('opacity', arrowOpacity);
+        // $triesLeftDisplay.text(`Tries left: ${triesLeft}`);
+        generateNewDirection();
     }
 
     function checkAnswer(selectedDirection) {
@@ -162,7 +237,7 @@
                 leftEyeScore = correctAnswers;
                 currentEye = 'right';
                 $eyeIndicator.text('Testing: Right Eye');
-                resetForNextEye(); // Reset for the right eye
+                showTransitionScreen(); // Display the transition screen before starting right eye test
                 return;
             } else {
                 rightEyeScore = correctAnswers;
@@ -171,34 +246,28 @@
             }
         }
 
-        // Decrease tries regardless of correct or wrong answer
         triesLeft--;
         $triesLeftDisplay.text(`Tries left: ${triesLeft}`);
 
         if (selectedDirection === currentDirection) {
             correctAnswers++;
-            $tick.fadeIn().delay(1000).fadeOut(); // Show tick for 1 second
-
-            // Apply the opacity reduction
+            $tick.fadeIn().delay(800).fadeOut();
             arrowOpacity -= reductionFactor;
-            $arrowDisplay.css('opacity', arrowOpacity.toFixed(3)); // Set the new opacity (rounded to 3 decimals)
-
-            // Halve the reduction factor for the next correct answer
+            $arrowDisplay.css('opacity', arrowOpacity.toFixed(3));
             reductionFactor /= 2;
         } else {
-            $cross.fadeIn().delay(1000).fadeOut(); // Show cross for 1 second
+            $cross.fadeIn().delay(800).fadeOut();
         }
 
-        // Generate new direction after 1 second
-        setTimeout(generateNewDirection, 1000);
+        setTimeout(generateNewDirection, 1500);
 
         if (triesLeft === 0) {
             setTimeout(() => {
                 if (currentEye === 'left') {
                     leftEyeScore = correctAnswers;
                     currentEye = 'right';
-                    $eyeIndicator.text('Testing: Right Eye');
-                    resetForNextEye(); // Reset for the right eye
+                    $eyeIndicator.text('Cover your right eye');
+                    showTransitionScreen();
                 } else {
                     rightEyeScore = correctAnswers;
                     postResults();
@@ -207,25 +276,28 @@
         }
     }
 
+    function startRightEyeTest() {
+        resetForNextEye();
+    }
+
     function postResults() {
         const comment = generateComment(leftEyeScore, rightEyeScore);
         const result = {
-            UserID: 5, // Replace with actual user ID
+            UserID: userID,
             LeftEyeScore: leftEyeScore,
             RightEyeScore: rightEyeScore,
             Comments: comment
         };
 
-        // Send POST request using jQuery
         $.ajax({
-            url: 'http://localhost:8088/main.go',
+            url: 'http://localhost:8088/postVisionResult',
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(result),
             success: function (data) {
                 console.log('Success:', data);
                 alert('Results posted successfully!');
-                window.location.href = "contrastResult.html"; // Redirect to the result page
+                window.location.href = "contrastResult.html";
             },
             error: function (error) {
                 console.error('Error:', error);
@@ -235,24 +307,48 @@
     }
 
     function generateComment(leftScore, rightScore) {
-        if (leftScore >= 7 && rightScore >= 7) {
-            return "Your vision in both eyes is excellent.";
-        } else if (leftScore >= 5 && rightScore >= 5) {
-            return "Your vision in both eyes seems to be slightly reduced.";
-        } else {
-            return "Your vision in both eyes is significantly reduced.";
+        let overallComment = "";
+        let leftEyeComment = "";
+        let rightEyeComment = "";
+
+        let totalScore = leftScore + rightScore;
+
+        if (totalScore >= 9) {
+            overallComment = "You have perfect eyesight.";
+        } else if (totalScore >= 7) {
+            overallComment = "You have very good eye contrast.";
+        } else if (totalScore === 6) {
+            overallComment = "Your eye contrast is moderate.";
         }
+
+        if (leftScore <= 2) {
+            leftEyeComment = leftScore === 2 ? "Your left eye contrast is below average."
+                : leftScore === 1 ? "Your left eye contrast is weak."
+                : "Your left eye contrast is severely impaired.";
+        }
+
+        if (rightScore <= 2) {
+            rightEyeComment = rightScore === 2 ? "Your right eye contrast is below average."
+                : rightScore === 1 ? "Your right eye contrast is weak."
+                : "Your right eye contrast is severely impaired.";
+        }
+
+        if (leftScore === 0 && rightScore === 0) {
+            overallComment = "Your contrast vision is completely impaired.";
+        }
+
+        return `${overallComment} ${leftEyeComment} ${rightEyeComment}`.trim();
     }
 
-    // Initialize with a random direction
     generateNewDirection();
 
-    // Attach click event handlers to pie pieces
     $('.pie-piece').on('click', function () {
         const selectedDirection = $(this).attr('onclick').match(/checkAnswer\('(.*?)'\)/)[1];
         checkAnswer(selectedDirection);
     });
 });
+
+
     </script>
 
 </body>
