@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Fall Risk Assessment Questionnaire</title>
+    <title>Fall Risk Assessment Results</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="" name="keywords">
     <meta content="" name="description">
@@ -59,41 +59,31 @@
         <div class="collapse navbar-collapse" id="navbarCollapse">
             <div class="navbar-nav ms-auto p-4 p-lg-0">
                 <a href="index.html" class="nav-item nav-link">Home</a>
-                    <a href="profile.html" class="nav-item nav-link">Profile</a>
-                    <a href="notifications.html" class="nav-item nav-link">Notifications</a>
-                    <a href="assessmentHistory.html" class="nav-item nav-link">My Results</a>
-                    <a href="contact.html" class="nav-item nav-link">Contact</a>
-                    <a href="aboutus.html" class="nav-item nav-link">About Us</a>
+                <a href="profile.html" class="nav-item nav-link">Profile</a>
+                <a href="notifications.html" class="nav-item nav-link">Notifications</a>
+                <a href="assessmentHistory.html" class="nav-item nav-link">My Results</a>
+                <a href="contact.html" class="nav-item nav-link">Contact</a>
+                <a href="aboutus.html" class="nav-item nav-link">About Us</a>
                 <a href="#" class="nav-item nav-link logout-link" onclick="logout()">Log Out</a>
             </div>
             <a href="quiz.html" class="btn btn-primary rounded-0 py-4 px-lg-5 d-none d-lg-block">Self-Assessment<i class="fa fa-arrow-right ms-3"></i></a>
         </div>
     </nav>
 
-    <!-- Quiz Section -->
+    <!-- Assessment Results Section -->
     <div class="container-fluid d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 100px);">
         <div class="card shadow-lg p-4 col-md-8 col-lg-6">
-            <h2 class="text-center mb-4">Fall Risk Assessment</h2>
+            <h2 class="text-center mb-4 text-primary">Fall Risk Assessment Results</h2>
+
             <div class="card p-4">
-                <div class="question fs-5 fw-bold mb-3 text-center text-dark" id="question"></div>
-                
-                <!-- Options -->
-                <div class="options d-grid gap-2" id="options"></div>
+                <p class="fw-bold">Total Score: <span id="total_score" class="text-primary">Loading...</span></p>
+                <p class="fw-bold">Risk Level: <span id="risk_level" class="fw-bold">Loading...</span></p>
+                <p class="fw-bold">Recommendation:</p>
+                <p id="recommendation_text" class="text-muted">Loading...</p>
+            </div>
 
-                <div class="progress mt-3 text-center fw-bold text-secondary" id="progress"></div>
-
-                <!-- Navigation Buttons -->
-                <div class="d-flex justify-content-between mt-4">
-                    <button class="btn btn-secondary rounded-pill px-4 prev" onclick="prevQuestion()" disabled>Previous</button>
-                    <button class="btn btn-primary rounded-pill px-4 next" onclick="nextQuestion()">Next</button>
-                </div>
-
-                <!-- Results Container (Initially Hidden) -->
-                <div class="results-container text-center mt-4 d-none" id="results-container">
-                    <h2 class="text-success fw-bold">Assessment Completed!</h2>
-                    <p class="text-secondary">Click Submit to send your responses.</p>
-                    <button class="btn btn-success fw-bold shadow-lg px-5 py-2 mt-3" onclick="submitResults()">Submit</button>
-                </div>
+            <div class="text-center mt-3">
+                <a href="quiz.html" class="btn btn-primary rounded-pill px-4">Retake Assessment</a>
             </div>
         </div>
     </div>
@@ -143,113 +133,48 @@
 
     <!-- JavaScript -->
     <script>
+        // Logout
         function logout() {
             localStorage.removeItem("user_id");
             window.location.href = "index.html";
         }
 
-        let questions = [];
-        let currentIndex = 0;
-        let userResponses = {};
-
-        async function fetchQuestions() {
-            const language = localStorage.getItem("selectedLanguage") || "English";
-            const response = await fetch(`http://localhost:5000/api/questionnaire?language=${language}`);
-            questions = await response.json();
-            currentIndex = 0;
-            userResponses = {}; 
-            displayQuestion();
-        }
-
-        function displayQuestion() {
-            if (currentIndex >= questions.length) {
-                showSubmitButton();
-                return;
-            }
-
-            const questionData = questions[currentIndex];
-            document.getElementById("question").textContent = questionData.question_content;
-
-            const optionsDiv = document.getElementById("options");
-            optionsDiv.innerHTML = "";
-
-            questionData.question_options.forEach((option, index) => {
-                const button = document.createElement("button");
-                button.textContent = option;
-                button.classList.add("btn", "btn-outline-primary", "w-auto", "px-4", "py-2", "fw-bold", "rounded-pill", "quiz-option");
-                button.onclick = () => {
-                    userResponses[questionData.question_id] = index + 1;
-                    nextQuestion();
-                };
-                optionsDiv.appendChild(button);
-            });
-
-            document.getElementById("progress").textContent = `Question ${currentIndex + 1} of ${questions.length}`;
-            document.querySelector(".prev").disabled = (currentIndex === 0);
-            document.querySelector(".next").disabled = (currentIndex === questions.length);
-        }
-
-        function prevQuestion() {
-            if (currentIndex > 0) {
-                currentIndex--;
-                displayQuestion();
-            }
-        }
-
-        function nextQuestion() {
-            if (currentIndex < questions.length - 1) {
-                currentIndex++;
-                displayQuestion();
-            } else {
-                showSubmitButton();
-            }
-        }
-
-        function showSubmitButton() {
-            // Hide quiz elements
-            document.getElementById("question").style.display = "none";
-            document.getElementById("options").innerHTML = ""; // Clear options
-            document.getElementById("progress").style.display = "none";
-
-            // Hide navigation buttons
-            document.querySelector(".prev").style.display = "none";
-            document.querySelector(".next").style.display = "none";
-
-            // Show the submit button container
-            document.getElementById("results-container").classList.remove("d-none");
-            document.getElementById("results-container").style.display = "block";
-        }
-
-        async function submitResults() {
+        // Retrieve Assessment Results
+        async function fetchLatestResult() {
             const userId = localStorage.getItem("user_id");
-            if (!userId) {
-                alert("Unable to retrieve User ID");
-                return;
-            }
-            try {
-                const response = await fetch("http://localhost:5000/api/addAssessmentResults", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        user_id: parseInt(userId),
-                        answers: userResponses
-                    })
-                });
 
-                if (response.ok) {
-                    alert("Responses submitted successfully!");
-                    window.location.href = "assessmentResults.html"; // Redirect to homepage
-                } else {
-                    alert("Failed to submit responses. Please try again.");
+            fetch(`http://localhost:5000/api/getLastAssessment`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: parseInt(userId) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("total_score").innerText = data.totalScore;
+                document.getElementById("risk_level").innerText = data.riskLevel;
+
+                // Apply color class based on risk level
+                const riskLevelElement = document.getElementById("risk_level");
+                riskLevelElement.classList.remove("risk-low", "risk-moderate", "risk-high");
+
+                if (data.risk_level === "Low") {
+                    riskLevelElement.classList.add("risk-low");
+                } else if (data.risk_level === "Moderate") {
+                    riskLevelElement.classList.add("risk-moderate");
+                } else if (data.risk_level === "High") {
+                    riskLevelElement.classList.add("risk-high");
                 }
-            } catch (error) {
-                alert("Error submitting responses: " + error.message);
-            }
+
+                document.getElementById("recommendation_text").innerText = data.recommendation;
+            })
+            .catch(error => {
+                console.error("Error fetching data:", error);
+                document.body.innerHTML = "<h3>Failed to load assessment data. Please try again.</h3>";
+            });
         }
 
-        fetchQuestions();
+        // Fetch Assessment Results on page load
+        fetchLatestResult();
     </script>
 
     <!-- JavaScript Libraries -->

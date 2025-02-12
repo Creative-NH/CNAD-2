@@ -1,34 +1,16 @@
-CREATE DATABASE IF NOT EXISTS doctor_service;
-USE doctor_service;
+-- Doctor Service
+DROP database IF EXISTS doctor_db;
+CREATE database doctor_db;
+USE doctor_db;
 
 -- Table for storing doctor information
 CREATE TABLE IF NOT EXISTS Doctors (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL, -- Changed to store hashed passwords
-    available BOOLEAN DEFAULT TRUE
-);
-
--- Table for storing alerts related to patient cases
-CREATE TABLE IF NOT EXISTS Alerts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    alert_message TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    resolved BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (user_id) REFERENCES Reports(user_id) ON DELETE CASCADE
-);
-
--- Table for storing patient reports accessible by doctors
-CREATE TABLE IF NOT EXISTS Reports (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    report TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES Doctors(id) ON DELETE CASCADE
+    DoctorID INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Email VARCHAR(100) UNIQUE NOT NULL,
+    PasswordHash VARCHAR(255) NOT NULL -- Changed to store hashed passwords
 );
 
 -- Insert a test doctor with a hashed password
-INSERT INTO Doctors (name, username, password_hash, available) VALUES
-('Dr. John Doe', 'johndoe', '$2a$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36wb8F2oUqJ36PpsW.pxUUm', TRUE);
+INSERT INTO Doctors (Name, Email, PasswordHash) VALUES
+('Dr. John Doe', 'johndoe7@gmail.com', '$2a$10$.Nl5tbg7enAt9PUEG.DBe.DHj0vRrldExrcaLN9e9I6dZ.bMPy/ha');
