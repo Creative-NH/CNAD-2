@@ -4,8 +4,12 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+
+	"gopkg.in/gomail.v2"
 
 	_ "github.com/go-sql-driver/mysql"
 )
