@@ -47,38 +47,6 @@
             border-left: 5px solid #007bff;
         }
 
-        .section strong {
-            display: inline-block;
-            width: 180px;
-            color: #333;
-        }
-
-        .risk-level {
-            font-size: 18px;
-            font-weight: bold;
-            padding: 10px;
-            text-align: center;
-            border-radius: 5px;
-        }
-
-        .low-risk {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .medium-risk {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-        }
-
-        .high-risk {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
         .footer {
             text-align: center;
             font-size: 14px;
@@ -109,30 +77,67 @@
 
         <div class="section">
             <h2>User Information</h2>
-            <p><strong>Name:</strong> {{.User.Name}}</p>
-            <p><strong>Email:</strong> {{.User.Email}}</p>
-            <p><strong>Date of Birth:</strong> {{.User.DateOfBirth}}</p>
-            <p><strong>Phone Number:</strong> {{.User.PhoneNumber}}</p>
-            <p><strong>Address:</strong> {{.User.Address}}</p>
-        </div>
-
-        <div class="section">
-            <h2>Assessment Information</h2>
-            <p><strong>Physical Test Results:</strong> {{.Assessment.PhysicalTestResults}}</p>
+            <p><strong>Name:</strong> John Doe</p>
+            <p><strong>Email:</strong> johndoe@example.com</p>
+            <p><strong>Date of Birth:</strong> 1990-05-15</p>
         </div>
 
         <div class="section">
             <h2>Risk Assessment</h2>
-            <p class="risk-level {{.RiskAssessment.RiskLevel}}">
-                <strong>Risk Level:</strong> {{.RiskAssessment.RiskLevel}}
-            </p>
-            <p><strong>Recommendation:</strong> {{.RiskAssessment.Recommendation}}</p>
+            <p><strong>Risk Level:</strong> <span id="riskLevel">Loading...</span></p>
+            <p><strong>Recommendation:</strong> <span id="recommendation">Loading...</span></p>
+        </div>
+
+        <div class="section">
+            <h2>Vision Test Results</h2>
+            <p><strong>Left Eye Score:</strong> <span id="leftEyeScore">Loading...</span></p>
+            <p><strong>Right Eye Score:</strong> <span id="rightEyeScore">Loading...</span></p>
+            <p><strong>Comments:</strong> <span id="visionComments">Loading...</span></p>
         </div>
 
         <div class="footer">
-            <p>Generated on {{.ReportDate}}</p>
+            <p>Generated on <span id="reportDate"></span></p>
         </div>
     </div>
+
+    <script>
+        document.getElementById("reportDate").innerText = new Date().toLocaleDateString();
+
+        const userID = 5; // Replace with dynamic user ID if necessary
+
+        // Fetch Vision Test Results
+        function fetchVisionResults() {
+            fetch(`http://localhost:8088/getLatestResult?userID=${userID}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("leftEyeScore").innerText = data.LeftEyeScore;
+                    document.getElementById("rightEyeScore").innerText = data.RightEyeScore;
+                    document.getElementById("visionComments").innerText = data.Comments;
+                })
+                .catch(error => {
+                    console.error("Error fetching vision results:", error);
+                    document.getElementById("visionComments").innerText = "Failed to load vision results.";
+                });
+        }
+
+        // Fetch Risk Assessment (Example API - replace with actual endpoint)
+        function fetchRiskAssessment() {
+            fetch(`http://localhost:8080/risk-history/${userID}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("riskLevel").innerText = data.risk_level;
+                    document.getElementById("recommendation").innerText = data.recommendation;
+                })
+                .catch(error => {
+                    console.error("Error fetching risk assessment:", error);
+                    document.getElementById("riskLevel").innerText = "Failed to load risk level.";
+                    document.getElementById("recommendation").innerText = "Failed to load recommendation.";
+                });
+        }
+
+        fetchVisionResults();
+        fetchRiskAssessment();
+    </script>
 
 </body>
 </html>

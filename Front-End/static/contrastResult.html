@@ -21,7 +21,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
-            max-width: 300px;
+            max-width: 350px;
         }
 
         .result-card h1 {
@@ -50,6 +50,33 @@
             font-style: italic;
             color: #555;
         }
+
+        .view-report-btn {
+            display: none;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            margin: 20px auto; /* Centers the button */
+            display: block; /* Ensures it takes up a full line */
+            text-align: center;
+            width: 100%;
+        }
+
+        .view-report-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .doctor-message {
+            display: none;
+            margin-top: 15px;
+            color: red;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -65,6 +92,13 @@
         <div class="comments">
             Comments: <span id="result-comments"></span>
         </div>
+
+        
+        <!-- Message for Automatic Report Sending -->
+        <p id="doctor-message" class="doctor-message">Your report has been sent to the doctor for review.</p>
+        
+        <!-- View Report Button (Hidden Initially) -->
+        <button id="view-report-btn" class="view-report-btn" onclick="viewReport()">View Full Report</button>
     </div>
 
     <script>
@@ -105,6 +139,28 @@
             return { outcome, imageSrc };
         }
 
+        // Function to send an automatic report to the doctor if needed
+        function sendReportToDoctor(leftScore, rightScore) {
+            if (leftScore <= 2 || rightScore <= 2) {
+                document.getElementById("doctor-message").style.display = "block";
+
+                // Simulate sending report (Replace with actual API if available)
+                fetch("http://localhost:8088/sendReportToDoctor", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        user_id: 5,
+                        left_eye_score: leftScore,
+                        right_eye_score: rightScore,
+                        comments: "The user's vision is significantly reduced. Please review."
+                    })
+                })
+                .then(response => response.json())
+                .then(data => console.log("Report sent to doctor:", data))
+                .catch(error => console.error("Error sending report:", error));
+            }
+        }
+
         // Function to display the result
         async function displayResult() {
             const result = await fetchLatestResult();
@@ -118,9 +174,20 @@
                 document.getElementById('left-eye-score').textContent = LeftEyeScore;
                 document.getElementById('right-eye-score').textContent = RightEyeScore;
                 document.getElementById('result-comments').textContent = Comments;
+
+                // Show "View Report" button if any score is ≤ 2
+                if (LeftEyeScore <= 2 || RightEyeScore <= 2) {
+                    document.getElementById("view-report-btn").style.display = "block";
+                    sendReportToDoctor(LeftEyeScore, RightEyeScore);
+                }
             } else {
                 document.getElementById('result-outcome').textContent = "Failed to load result.";
             }
+        }
+
+        // Function to view the report (redirects to report page)
+        function viewReport() {
+            window.location.href = "report.html"; // Redirect to the report page
         }
 
         // Fetch and display the result when the page loads
